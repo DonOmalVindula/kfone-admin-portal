@@ -11,7 +11,7 @@ const { Search } = Input;
 export default function CustomerPage() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
-    const [isAddDeviceModalVisible, setAddDeviceModalVisible] = useState<boolean>(false);
+    const [isAddCustomerModalVisible, setAddCustomerModalVisible] = useState<boolean>(false);
 
     const onSearch = () => {
         console.log(searchQuery);
@@ -28,7 +28,7 @@ export default function CustomerPage() {
             <Row className="search-row" gutter={[16, 16]}>
                 <Col span={6} offset={2}>
                     <Search
-                        placeholder="Search Devices"
+                        placeholder="Search Customers"
                         allowClear
                         enterButton="Search"
                         size="large"
@@ -36,8 +36,8 @@ export default function CustomerPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Col>
-                <Col span={3} offset={8}>
-                    <Button type="primary" onClick={() => setAddDeviceModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Device</Button>
+                <Col span={4} offset={10}>
+                    <Button type="primary" onClick={() => setAddCustomerModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Customer</Button>
                 </Col>
             </Row>
             <Row gutter={[16, 16]} >
@@ -59,7 +59,7 @@ export default function CustomerPage() {
                     /> */}
                 </Col>
             </Row>
-            <AddCustomerModal customers={customers} setCustomers={setCustomers} isOpen={isAddDeviceModalVisible} setIsOpen={setAddDeviceModalVisible} />
+            <AddCustomerModal customers={customers} setCustomers={setCustomers} isOpen={isAddCustomerModalVisible} setIsOpen={setAddCustomerModalVisible} />
         </>
     )
 }
@@ -197,25 +197,6 @@ const AddCustomerModal = ({ isOpen, setIsOpen, customers, setCustomers }: AddCus
                         >
                             <Input />
                         </Form.Item>
-                    </Col>
-                </Row>
-                <Divider dashed>Promo Codes</Divider>
-                {resolvePromoCodes()}
-                <Row gutter={16}>
-                    <Col span={24}>
-                        <Space>
-                            <Button type="dashed" onClick={() => setPromoCodeCount(promoCodeCount + 1)} icon={<PlusOutlined />} block> Add Promo Code</Button>
-                            <Button
-                                type="dashed"
-                                onClick={() => setPromoCodeCount(promoCodeCount - 1)}
-                                icon={<PlusOutlined />}
-                                disabled={promoCodeCount <= 0}
-                                block
-                                danger
-                            >
-                                Remove Promo Code
-                            </Button>
-                        </Space>
                     </Col>
                 </Row>
             </Form>

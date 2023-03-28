@@ -5,11 +5,11 @@ import { Device, DeviceCategory } from "./devices";
 
 interface DeviceCardProps {
     device: Device,
-    deleteDevice: (id: string) => void,
-    editDevice: (id: string) => void
+    deleteDevice?: (id: string) => void,
+    editDevice?: (id: string) => void
 }
 
-export default function DeviceCard({ device }: { device: Device }) {
+export default function DeviceCard({ device }: DeviceCardProps) {
     const resolveAvatarIcon = () => {
         switch (device.category) {
             case DeviceCategory.PHONE:

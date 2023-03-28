@@ -6,12 +6,16 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import LoadingSpinner from "../common/loadingSpinner";
+import axios, { AxiosError, AxiosRequestConfig } from "axios";
+import { getServerSession } from "next-auth";
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-    const { data: session, status  } = useSession();
+    const { data, status  }: any = useSession();
     const { push } = useRouter();
 
-    console.log();
+    console.log(data);
+    console.log(process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME);
+    
     
     
     const items: MenuProps['items'] = [
@@ -39,6 +43,38 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
         push(e.key);
     };
 
+    const testSignOut = async () => {
+        if (data) {
+            try {
+                signOut();
+                // Add the id_token_hint to the query string
+                const params = new URLSearchParams();
+                params.append('token', data?.access_token);
+                // params.append('post_logout_redirect_uri', process.env.NEXT_PUBLIC_ASGARDEO_POST_LOGOUT_REDIRECT_URI ?? "");
+                params.append('token_type_hint', "access_token");
+
+                const requestConfig: AxiosRequestConfig = {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        Authorization: `Basic ${Buffer.from(`${process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_ID}:${process.env.NEXT_PUBLIC_ASGARDEO_CLIENT_SECRET}`).toString('base64')}`
+                    }
+                }
+    
+                const { status, statusText } = await axios.post(
+                    `https://api.asgardeo.io/t/${process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME}/oauth2/revoke?${params.toString()}`,
+                    {},
+                    requestConfig
+                    );
+    
+                // The response body should contain a confirmation that the user has been logged out
+                console.log("Completed post-logout handshake", status, statusText);
+            }
+            catch (e: any) {
+                console.error("Unable to perform post-logout handshake", (e as AxiosError)?.code || e)
+            }
+        }
+    }
+
     if (status === 'unauthenticated') {
         push('/');
     }
@@ -48,7 +84,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             ? <LoadingSpinner /> : (
                 <>
                     <Menu onClick={onClick} selectedKeys={[current]} mode="horizontal" items={items} />
-                        <Button className="sign-out-btn" type="dashed" danger onClick={() => signOut({callbackUrl: "http://localhost:3000" })}>Sign out</Button>
+                        <Button className="sign-out-btn" type="dashed" danger onClick={() => testSignOut()}>Sign out</Button>
                     <main>{children}</main>
                 </>
             )

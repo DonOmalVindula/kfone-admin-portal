@@ -5,38 +5,57 @@ import DeviceCard from "./deviceCard"
 import { Device, DeviceCategory } from "./devices";
 import { useEffect, useState } from "react";
 import TextArea from "antd/es/input/TextArea";
+import axios, { AxiosRequestConfig } from "axios";
+import { useSession } from "next-auth/react";
 
 const { Option } = Select;
 const { Search } = Input;
 
 export default function DevicePage() {
     const [devices, setDevices] = useState<Device[]>([]);
+    const [searchHits, setSearchHits] = useState<Device[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchFilter, setSearchFilter] = useState(DeviceCategory.PHONE);
     const [isAddDeviceModalVisible, setAddDeviceModalVisible] = useState<boolean>(false);
+    const { data }: any = useSession();
+
+
+    useEffect(() => {
+        getDevices();
+    }, []);
+
+
+    useEffect(() => {
+        onSearch();
+    }, [searchQuery]);
 
     const onSearch = () => {
-        console.log(searchQuery);
-        console.log(searchFilter);
+        // implement search on the devices array by name
+        const hits = devices.filter((device) => device.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        setSearchHits(hits);
     };
 
     const handleFilterChange = (value: string) => {
         setSearchFilter(value as DeviceCategory);
     };
 
-    useEffect(() => {
-        const device: Device = {
-            id: '1',
-            name: 'iPhone 12 Pro',
-            description: 'This is an iPhone 12 Pro',
-            category: DeviceCategory.PHONE,
-            price: 350000.00,
-            imageUrl: "https://m.media-amazon.com/images/I/71fJ-gmBZtL.jpg"
+    const getDevices = async () => {
+        const token = data?.access_token;
+
+        const requestConfig: AxiosRequestConfig = {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         }
-
-        setDevices([device]);
-    }, []);
-
+        
+        try{
+            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/devices`, requestConfig);
+            setDevices(response.data);
+            setSearchHits(response.data);
+        } catch (error) {
+            console.log(error);
+        }
+    }
 
     return (
         <>
@@ -46,24 +65,23 @@ export default function DevicePage() {
                 </Col>
             </Row>
             <Row className="search-row" gutter={[16, 16]}>
-                <Col span={6} offset={2}>
+                <Col lg={6} md={8} offset={2}>
                     <Search
                         placeholder="Search Devices"
                         allowClear
-                        enterButton="Search"
                         size="large"
                         onSearch={onSearch}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Col>
-                <Col span={3}>
+                <Col lg={4} md={6}>
                     <Select size="large" defaultValue={DeviceCategory.PHONE} style={{ width: "100%" }} onChange={handleFilterChange}>
                         <Option value={DeviceCategory.PHONE} >Phones</Option>
                         <Option value={DeviceCategory.TABLET}>Tablets</Option>
                         <Option value={DeviceCategory.WEARABLE}>Wearables</Option>
                     </Select>
                 </Col>
-                <Col span={3} offset={8}>
+                <Col lg={4} md={6}>
                     <Button type="primary" onClick={() => setAddDeviceModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Device</Button>
                 </Col>
             </Row>
@@ -79,7 +97,7 @@ export default function DevicePage() {
                             xl: 3,
                             xxl: 6,
                         }}
-                        dataSource={devices}
+                        dataSource={searchHits}
                         renderItem={(item, index) => (
                             <DeviceCard device={item} key={index} />
                         )}
@@ -134,22 +152,6 @@ const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceMod
         return promoCodeArray;
     }
 
-    const resolvePromoCodeArray = (formValues: any) => {
-        const promoCodeArray = [];
-        let index = 1;
-
-        while (formValues[`promoCode${index}`] in formValues) {
-            promoCodeArray.push({
-                id: index.toString(),
-                code: formValues[`promoCode${index}`],
-                discount: formValues[`promoCodeAmount${index}`]
-            });
-            index++;
-        }
-
-        return promoCodeArray;
-    }
-
     const addDevice = (values: any) => {
         setSubmitting(true);
         const tempDevices = [...devices];
@@ -161,7 +163,6 @@ const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceMod
             category: values.category,
             price: values.price,
             imageUrl: values.imageUrl,
-            promoCodes: resolvePromoCodeArray(values)
         }
 
         tempDevices.push(newDevice);
@@ -237,25 +238,6 @@ const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceMod
                         >
                             <Input />
                         </Form.Item>
-                    </Col>
-                </Row>
-                <Divider dashed>Promo Codes</Divider>
-                {resolvePromoCodes()}
-                <Row gutter={16}>
-                    <Col span={24}>
-                        <Space>
-                            <Button type="dashed" onClick={() => setPromoCodeCount(promoCodeCount + 1)} icon={<PlusOutlined />} block> Add Promo Code</Button>
-                            <Button
-                                type="dashed"
-                                onClick={() => setPromoCodeCount(promoCodeCount - 1)}
-                                icon={<PlusOutlined />}
-                                disabled={promoCodeCount <= 0}
-                                block
-                                danger
-                            >
-                                Remove Promo Code
-                            </Button>
-                        </Space>
                     </Col>
                 </Row>
             </Form>

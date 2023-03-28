@@ -8,14 +8,15 @@ export default function Component() {
     const { data: session, status } = useSession();
     const { push } = useRouter();
 
-
     useEffect(() => {
+        console.log("Logging in...", status);
+        
         if (status === 'unauthenticated') {
-            signIn();
+            signIn("asgardeo");
         } else if (status === 'authenticated') {
             push('/authenticated/devices');
         }
-    }, [session, status])
+    }, [status])
     
     return null;
 }

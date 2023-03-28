@@ -5,7 +5,7 @@ export interface Device {
     price?: number;
     description?: string;
     category?: DeviceCategory;
-    promoCodes?: PromoCode[]
+    promoCode?: PromoCode;
 }
 
 export interface PromoCode {

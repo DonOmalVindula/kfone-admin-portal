@@ -1,21 +1,98 @@
 "use client"
-import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space } from "antd"
-import { PlusOutlined } from "@ant-design/icons"
-import { Customer } from "./customers";
+import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space, Table } from "antd"
+import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons"
+import { Customer, CustomerTier } from "./customers";
 import { useEffect, useState } from "react";
 import TextArea from "antd/es/input/TextArea";
 
 const { Option } = Select;
 const { Search } = Input;
+const { confirm } = Modal;
 
-export default function CustomerPage() {
-    const [customers, setCustomers] = useState<Customer[]>([]);
+export default function CustomersPage() {
+    const [customers, setCustomers] = useState<Customer[]>([{
+        name: "John Doe",
+        email: "john@wso2.com",
+        password: "",
+        tier: CustomerTier.NONE,
+        points: 0
+    }]);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer>();
+    const [searchHits, setSearchHits] = useState<Customer[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isAddCustomerModalVisible, setAddCustomerModalVisible] = useState<boolean>(false);
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
+
+    useEffect(() => {
+        // get customers
+    }, []);
+
+    useEffect(() => {
+        onSearch();
+    }, [searchQuery]);
 
     const onSearch = () => {
-        console.log(searchQuery);
+        const hits = customers.filter((customer) => customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
+        setSearchHits(hits);
     };
+
+    const deleteUser = (customer: Customer) => {
+        confirm({
+            title: 'Do you want to delete this customer?',
+            icon: <ExclamationCircleFilled />,
+            content: "Customer Email: " + customer.email,
+            onOk() {
+                console.log('OK');
+            }
+        });
+    }
+
+    const columns = [
+        {
+            title: 'Name',
+            dataIndex: 'name',
+            key: 'name',
+        },
+        {
+            title: 'Email',
+            dataIndex: 'email',
+            key: 'email',
+        },
+        {
+            title: 'Tier',
+            dataIndex: 'tier',
+            key: 'tier',
+            render: (text: string) => <span>{text.toUpperCase()}</span>
+        },
+        {
+            title: 'Points',
+            dataIndex: 'points',
+            key: 'points',
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            render: (text: string, record: Customer) => (
+                <Space size="middle">
+                    <a 
+                        onClick={() => {
+                            setIsEditMode(true);
+                            setSelectedCustomer(record);
+                            setAddCustomerModalVisible(true);
+                        }}
+                    >
+                        Edit
+                    </a>
+                    <a
+                        onClick={() => deleteUser(record)}
+                    >
+                        Delete
+                    </a>
+                </Space>
+            )
+        }
+    ];
 
 
     return (
@@ -30,36 +107,30 @@ export default function CustomerPage() {
                     <Search
                         placeholder="Search Customers"
                         allowClear
-                        enterButton="Search"
                         size="large"
                         onSearch={onSearch}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Col>
-                <Col span={4} offset={10}>
-                    <Button type="primary" onClick={() => setAddCustomerModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Customer</Button>
+                <Col span={4}>
+                    <Button
+                        type="primary"
+                        onClick={() => {
+                            setIsEditMode(false);
+                            setAddCustomerModalVisible(true)
+                        }} 
+                        size='large' 
+                        icon={<PlusOutlined />} 
+                        block
+                    > Add Customer</Button>
                 </Col>
             </Row>
             <Row gutter={[16, 16]} >
                 <Col span={20} offset={2}>
-                    {/* <List
-                        grid={{
-                            gutter: 16,
-                            xs: 1,
-                            sm: 1,
-                            md: 2,
-                            lg: 3,
-                            xl: 3,
-                            xxl: 6,
-                        }}
-                        dataSource={devices}
-                        renderItem={(item, index) => (
-                            <DeviceCard device={item} key={index} />
-                        )}
-                    /> */}
+                    <Table loading={isLoading} columns={columns} dataSource={searchHits} bordered />
                 </Col>
             </Row>
-            <AddCustomerModal customers={customers} setCustomers={setCustomers} isOpen={isAddCustomerModalVisible} setIsOpen={setAddCustomerModalVisible} />
+            <AddCustomerModal isOpen={isAddCustomerModalVisible} setIsOpen={setAddCustomerModalVisible} isEditMode={isEditMode} selectedCustomer={selectedCustomer} />
         </>
     )
 }
@@ -67,63 +138,19 @@ export default function CustomerPage() {
 export interface AddCustomerModalProps {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
-    setCustomers: (devices: Customer[]) => void;
-    customers: Customer[];
+    isEditMode?: boolean;
+    selectedCustomer?: Customer;
 }
 
-const AddCustomerModal = ({ isOpen, setIsOpen, customers, setCustomers }: AddCustomerModalProps) => {
+const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalProps) => {
     const [form] = Form.useForm();
-    const [isSubmitting, setSubmitting] = useState(false);
-    const [promoCodeCount, setPromoCodeCount] = useState<number>(0);
 
-    const resolvePromoCodes = () => {
-        const promoCodeArray = [];
-
-        for (let i = 0; i < promoCodeCount; i++) {
-            promoCodeArray.push(
-                <Row key={i} gutter={16}>
-                    <Col span={12}>
-                        <Form.Item
-                            label={`Promo Code ${i + 1}`}
-                            name={`promoCode${i + 1}`}
-                            rules={[{ required: true, message: 'Required!' }]}
-                        >
-                            <Input />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label={"Discount in %"}
-                            name={`promoCodeAmount${i + 1}`}
-                            rules={[{ required: true, message: 'Required!' }]}
-                        >
-                            <InputNumber />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            )
+    const resolveAction = (values: any) => {
+        if (isEditMode) {
+            console.log(values);
+        } else {
+            console.log(values);
         }
-
-        return promoCodeArray;
-    }
-
-    const resolvePromoCodeArray = (formValues: any) => {
-        const promoCodeArray = [];
-        let index = 1;
-
-        while (formValues[`promoCode${index}`] in formValues) {
-            promoCodeArray.push({
-                id: index.toString(),
-                code: formValues[`promoCode${index}`],
-                discount: formValues[`promoCodeAmount${index}`]
-            });
-            index++;
-        }
-
-        return promoCodeArray;
-    }
-
-    const addDevice = (values: any) => {
         // setSubmitting(true);
         // const tempDevices = [...devices];
 
@@ -145,57 +172,84 @@ const AddCustomerModal = ({ isOpen, setIsOpen, customers, setCustomers }: AddCus
 
     return (
         <Modal
-            title="Add Device to the Marketplace"
+            title={isEditMode ? "Edit Customer" : "Add Customer to System"}
             open={isOpen}
-            okText="Add Device"
+            okText={isEditMode ? "Edit Customer" : "Add Customer"}
             onOk={() => form.submit()}
             onCancel={() => setIsOpen(false)}
             closable={false}
-            confirmLoading={isSubmitting}
         >
             <Form
                 form={form}
                 layout="vertical"
-                onFinish={addDevice}
+                onFinish={resolveAction}
+                initialValues={
+                    {
+                        points: 0
+                    }
+                }
             >
+                {
+                    !isEditMode && (
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item
+                                    label="Name"
+                                    name="name"
+                                    rules={[{ required: true, message: 'Required!' }]}
+                                >
+                                    <Input />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    label="Email"
+                                    name="email"
+                                    rules={[
+                                        { required: true, message: 'Required!' },
+                                        { type: 'email', message: 'Please enter a valid email address' }
+                                    ]}
+                                >
+                                    <Input />
+                                </Form.Item>
+                            </Col>
+                            <Col span={24}>
+                                <Form.Item
+                                    label="password"
+                                    name="password"
+                                    rules={[
+                                        { required: true, message: 'Required!' },
+                                        { min: 8, message: 'Password must be at least 8 characters long' }
+                                    ]}
+                                >
+                                    <Input.Password />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    )
+                }
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
-                            label="Device Name"
-                            name="deviceName"
-                            rules={[{ required: true, message: 'Required!' }]}
-                        >
-                            <Input />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label="Price"
-                            name="price"
+                            label="Loyalty Points"
+                            name="points"
                             rules={[{ required: true, message: 'Required!' }]}
                         >
                             <InputNumber style={{ width: "100%" }} />
                         </Form.Item>
                     </Col>
-                </Row>
-                <Row gutter={16}>
-                    <Col span={24}>
-                        <Form.Item
-                            label="Description"
-                            name="description"
-                            rules={[{ required: true, message: 'Required!' }]}
-                        >
-                            <TextArea />
-                        </Form.Item>
-                    </Col>
-                </Row>
-                <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item
-                            label="Image URL"
-                            name="imageUrl"
+                            label="Customer Tier"
+                            name="tier"
+                            rules={[{ required: true, message: 'Required!' }]}
                         >
-                            <Input />
+                            <Select>
+                                <Option value={CustomerTier.NONE}>None</Option>
+                                <Option value={CustomerTier.SILVER}>Silver</Option>
+                                <Option value={CustomerTier.GOLD}>Gold</Option>
+                                <Option value={CustomerTier.PLATINUM}>Platinum</Option>
+                            </Select>
                         </Form.Item>
                     </Col>
                 </Row>

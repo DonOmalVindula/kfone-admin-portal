@@ -1,7 +1,8 @@
 export interface Customer {
-    id: string;
+    id?: string;
     name: string;
-    email?: string;
+    email: string;
+    password: string;
     tier: string;
     points: number;
 }

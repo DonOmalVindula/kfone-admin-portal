@@ -1,37 +1,15 @@
 
 import NextAuth, { NextAuthOptions } from "next-auth"
-import { JWT } from "next-auth/jwt";
+import { JWT, JWTDecodeParams, JWTEncodeParams, getToken } from "next-auth/jwt";
 import axios, { AxiosError } from "axios";
+import { redirect } from "next/navigation";
+import jwtDecode from "jwt-decode";
 
 declare module "next-auth/jwt" {
     interface JWT {
         provider: string;
         idToken: string;
-    }
-}
-
-// this performs the final handshake for the keycloak
-// provider, the way it's written could also potentially
-// perform the action for other providers as well
-async function doFinalSignoutHandshake(jwt: JWT) {
-    const { provider, idToken } = jwt;
-
-    if (idToken) {
-        try {
-            // Add the id_token_hint to the query string
-            const params = new URLSearchParams();
-            params.append('id_token_hint', idToken);
-            params.append('post_logout_redirect_uri', process.env.NEXT_PUBLIC_ASGARDEO_POST_LOGOUT_REDIRECT_URI ?? "");
-            params.append('state', "sign_out_success");
-
-            const { status, statusText } = await axios.get(`https://api.asgardeo.io/t/${process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME}/oidc/logout?${params.toString()}`);
-
-            // The response body should contain a confirmation that the user has been logged out
-            console.log("Completed post-logout handshake", status, statusText);
-        }
-        catch (e: any) {
-            console.error("Unable to perform post-logout handshake", (e as AxiosError)?.code || e)
-        }
+        accessToken: string;
     }
 }
 
@@ -46,10 +24,15 @@ export const authOptions: NextAuthOptions = {
             userinfo: "https://api.asgardeo.io/t/" + process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME + "/oauth2/userinfo",
             type: "oauth",
             wellKnown: "https://api.asgardeo.io/t/" + process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME + "/oauth2/token/.well-known/openid-configuration",
-            // authorization: { params: { scope: process.env.ASGARDEO_SCOPES } },
+            authorization: {
+                params:
+                    { scope: "openid profile urn:kfonenextjsdemo:kfoneadminapis:add-devices urn:kfonenextjsdemo:kfoneadminapis:view-devices" }
+            },
             idToken: true,
             checks: ["pkce", "state"],
-            profile(profile) {                
+            profile(profile) {
+                console.log("profile: " + JSON.stringify(profile));
+
                 return {
                     id: profile.sub,
                     name: profile.name,
@@ -58,42 +41,34 @@ export const authOptions: NextAuthOptions = {
             },
         },
     ],
-    secret: process.env.NEXT_PUBLIC_NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET,
     session: {
         strategy: "jwt",
     },
     callbacks: {
-        async signIn({ user, account, profile, email, credentials }) {
-            console.log("signIn", user);
-            console.log("account", account);
-            console.log("profile", profile);
-            console.log("email", email);
-            console.log("credentials", credentials);
-            
-
+        async signIn({ user, account, profile, email, credentials }: any) {
             return true
         },
-        async session({ session, token, user }: any) {        
-            session.user = user;
-            session.idToken = token.idToken;
-            session.access_token = token.accessToken;
-            
-            // console.log("session", sessi);
-            console.log("token", token);            
-        
+        async session({ session, token, user }: any) {
+            if (token) {
+                const decodedAccessToken: any = jwtDecode(token.accessToken);
+    
+                session.user.accessToken = token.accessToken;
+                session.user.idToken = token.idToken;
+                session.user.scope =  decodedAccessToken.scope;
+            }
+            console.log("session: " + JSON.stringify(session));
+
             return session;
         },
-        async jwt({ token, user, account, profile, isNewUser }) {       
+        async jwt({ token, user, account, profile, isNewUser }) {
             if (account) {
-                token.accessToken = account.access_token
-                token.idToken = account.id_token ?? ""
-            }
+                token.accessToken = account.access_token!
+                token.idToken = account.id_token!
+            }            
 
-            return token
+            return token;
         }
-    },
-    events: {
-        signOut: ({ session, token }) => doFinalSignoutHandshake(token)
     },
     theme: {
         colorScheme: "light",

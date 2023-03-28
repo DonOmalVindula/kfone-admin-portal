@@ -36,3 +36,15 @@ body {
 .search-row {
   margin-bottom: 20px;
 }
+
+.step-card {
+  border-radius: 8px;
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  padding: 20px 10px;
+}
+
+.progress-card {
+  text-align: center;
+  margin: 10px;
+  height: 400px;
+}

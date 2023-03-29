@@ -31,7 +31,7 @@ export default function CustomersPage() {
     const getCustomers = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get("/api/customer");
+            const response = await axios.get(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/customer");
             const customers = response.data.Resources;                        
             
             setCustomers(customers);
@@ -195,7 +195,7 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers, selecte
                     tierPoints: values.tierPoints.toString(),
                     userId: selectedCustomer.id
                 }
-                await axios.patch("/api/customer", processedValues);
+                await axios.patch(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/customer", processedValues);
 
                 setIsOpen(false);
                 getCustomers();
@@ -206,7 +206,7 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers, selecte
                     tierPoints: values.tierPoints.toString(),
                     userId: selectedCustomer.id
                 }
-                await axios.post("/api/customer", processedValues);
+                await axios.post(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/customer", processedValues);
 
                 setIsOpen(false);
                 getCustomers();

@@ -1,6 +1,6 @@
 "use client"
 import { Button, Menu, MenuProps } from "antd"
-import { AppstoreOutlined, MailOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, SettingOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,22 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
     const [current, setCurrent] = useState('authenticated/devices');
 
     useEffect(() => {        
-        console.log("Data: ", data);
+        const userGroup = data?.user?.groups;
+
+        console.log("User group: ", userGroup);
+        if (userGroup) {
+            
+            if (userGroup.includes("Admin")) {
+                setUserRole(Role.ADMIN);
+            }
+            if (userGroup.includes("Sales")) {
+                setUserRole(Role.SALES);
+            }
+            if (userGroup.includes("Marketing")) {
+                setUserRole(Role.MARKETING);
+            }
+        }
+        
     }, []);
 
     useEffect(() => {
@@ -35,22 +50,22 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             {
                 label: 'Devices',
                 key: 'authenticated/devices',
-                icon: <MailOutlined />,
+                icon: <PhoneOutlined />,
             },
             {
                 label: 'Customers',
                 key: 'authenticated/customers',
-                icon: <AppstoreOutlined />,
+                icon: <UserOutlined />,
             },
-            {
-                label: 'Staff',
-                key: 'authenticated/staff',
-                icon: <SettingOutlined />,
-            },
+            // {
+            //     label: 'Staff',
+            //     key: 'authenticated/staff',
+            //     icon: <SettingOutlined />,
+            // },
             {
                 label: 'Promos',
                 key: 'authenticated/promos',
-                icon: <SettingOutlined />,
+                icon: <AppstoreOutlined />,
             },
         ];
     }
@@ -60,16 +75,21 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             {
                 label: 'Devices',
                 key: 'authenticated/devices',
-                icon: <MailOutlined />,
+                icon: <PhoneOutlined />,
             },
             {
                 label: 'Customers',
                 key: 'authenticated/customers',
-                icon: <AppstoreOutlined />,
+                icon: <UserOutlined />,
             },
             {
                 label: 'Promos',
                 key: 'authenticated/promos',
+                icon: <AppstoreOutlined />,
+            },
+            {
+                label: 'Stats',
+                key: 'authenticated/stats',
                 icon: <SettingOutlined />,
             },
         ];

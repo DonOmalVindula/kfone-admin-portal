@@ -15,6 +15,7 @@ const { Search } = Input;
 
 export default function DevicePage() {
     const [devices, setDevices] = useState<Device[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
     const [promos, setPromos] = useState<PromoInterface[]>([]);
     const [searchHits, setSearchHits] = useState<Device[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -44,6 +45,7 @@ export default function DevicePage() {
     };
 
     const getDevices = async () => {
+        setLoading(true);
         try {
             const response = await axios.get("/api/device");
             console.log(response.data);
@@ -52,6 +54,8 @@ export default function DevicePage() {
             setSearchHits(response.data);
         } catch (error) {
             console.log(error);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -100,6 +104,7 @@ export default function DevicePage() {
             <Row gutter={[16, 16]} >
                 <Col span={20} offset={2}>
                     <List
+                        loading={loading}
                         grid={{
                             gutter: 16,
                             xs: 1,
@@ -111,7 +116,7 @@ export default function DevicePage() {
                         }}
                         dataSource={searchHits}
                         renderItem={(item, index) => (
-                            <DeviceCard device={item} key={index} />
+                            <DeviceCard getDevices={getDevices} promos={promos} device={item} key={index} />
                         )}
                     />
                 </Col>

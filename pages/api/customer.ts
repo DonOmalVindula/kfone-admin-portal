@@ -18,14 +18,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const response = await axios.get(`${apiUrl}/getUsers`, requestConfig);
 
             res.status(200).json(response.data);
-        } else if (req.method === 'POST') {   
-            console.log(req.body);
-                     
+        } else if (req.method === 'POST') {                        
             const response = await axios.post(`${apiUrl}/createUser`, req.body, requestConfig);
 
             res.status(200).json(response.data);
-        } else if (req.method === 'PUT') {
-            const response = await axios.put(`${apiUrl}/updateUser`, req.body, requestConfig);
+        } else if (req.method === 'PATCH') {            
+            const response = await axios.patch(`${apiUrl}/updateUser`, req.body, requestConfig);
 
             res.status(200).json(response.data);
         }

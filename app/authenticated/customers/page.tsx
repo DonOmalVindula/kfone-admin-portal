@@ -13,7 +13,7 @@ const { confirm } = Modal;
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<any[]>([]);
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer>();
+    const [selectedCustomer, setSelectedCustomer] = useState<any>();
     const [searchHits, setSearchHits] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -32,9 +32,7 @@ export default function CustomersPage() {
         setIsLoading(true);
         try {
             const response = await axios.get("/api/customer");
-            const customers = response.data.Resources;    
-            console.log(customers);
-                    
+            const customers = response.data.Resources;                        
             
             setCustomers(customers);
             setSearchHits(customers);
@@ -51,11 +49,11 @@ export default function CustomersPage() {
         setSearchHits(hits);
     };
 
-    const deleteUser = (customer: Customer) => {
+    const deleteUser = (customer: any) => {
         confirm({
             title: 'Do you want to delete this customer?',
             icon: <ExclamationCircleFilled />,
-            content: "Customer Email: " + customer.email,
+            content: "Customer Email: " + customer.emails[0],
             onOk() {
                 console.log('OK');
             }
@@ -79,33 +77,41 @@ export default function CustomersPage() {
             title: 'Tier',
             dataIndex: 'tier',
             key: 'tier',
-            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"].tier.toUpperCase()}</span>
+            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"]?.tier?.toUpperCase()}</span>
         },
         {
             title: 'Points',
             dataIndex: 'tierPoints',
             key: 'tierPoints',
-            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"].tierPoints}</span>
+            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"]?.tierPoints}</span>
         },
         {
             title: 'Actions',
             key: 'actions',
             render: (text: string, record: Customer) => (
                 <Space size="middle">
-                    <a
-                        onClick={() => {
-                            setIsEditMode(true);
-                            setSelectedCustomer(record);
-                            setAddCustomerModalVisible(true);
-                        }}
+                    <AccessControl
+                        allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:update-user"]}
                     >
-                        Edit
-                    </a>
-                    <a
-                        onClick={() => deleteUser(record)}
-                    >
-                        Delete
-                    </a>
+                        <a
+                            onClick={() => {
+                                setIsEditMode(true);
+                                setSelectedCustomer(record);
+                                setAddCustomerModalVisible(true);
+                            }}
+                        >
+                            Edit
+                        </a>
+                    </AccessControl>
+                    <AccessControl
+                        allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:delete-user"]}
+                    >    
+                        <a
+                            onClick={() => deleteUser(record)}
+                        >
+                            Delete
+                        </a>
+                    </AccessControl>
                 </Space>
             )
         }
@@ -166,12 +172,19 @@ export interface AddCustomerModalProps {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
     isEditMode?: boolean;
-    selectedCustomer?: Customer;
+    selectedCustomer?: any;
     getCustomers: () => void;
 }
 
-const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers }: AddCustomerModalProps) => {
+const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers, selectedCustomer }: AddCustomerModalProps) => {
     const [form] = Form.useForm();
+
+    useEffect(() => {
+        if (selectedCustomer) {
+            form.setFieldValue("tierPoints",  selectedCustomer["urn:scim:wso2:schema"]?.tierPoints);
+            form.setFieldValue("tier", selectedCustomer["urn:scim:wso2:schema"]?.tier);
+        }
+    }, [selectedCustomer]);
 
     const resolveAction = async (values: any) => {
         try {
@@ -179,9 +192,10 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers }: AddCu
                 console.log('edit customer');
                 const processedValues = {
                     ...values,
-                    tierPoints: values.tierPoints.toString()
+                    tierPoints: values.tierPoints.toString(),
+                    userId: selectedCustomer.id
                 }
-                await axios.put("/api/customer", processedValues);
+                await axios.patch("/api/customer", processedValues);
 
                 setIsOpen(false);
                 getCustomers();
@@ -189,7 +203,8 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers }: AddCu
                 console.log('add customer');
                 const processedValues = {
                     ...values,
-                    tierPoints: values.tierPoints.toString()
+                    tierPoints: values.tierPoints.toString(),
+                    userId: selectedCustomer.id
                 }
                 await axios.post("/api/customer", processedValues);
 
@@ -238,7 +253,7 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers }: AddCu
                 onFinish={resolveAction}
                 initialValues={
                     {
-                        tierPoints: 0
+                        tierPoints: selectedCustomer && selectedCustomer["urn:scim:wso2:schema"]?.tierPoints,
                     }
                 }
             >

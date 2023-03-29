@@ -1,5 +1,5 @@
 export interface PromoInterface {
     id?: string;
-    code: string;
+    promoCode: string;
     discount: number;
 }

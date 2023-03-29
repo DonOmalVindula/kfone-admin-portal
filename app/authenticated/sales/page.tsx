@@ -1,7 +1,8 @@
 "use client";
-import { Button, Card, Col, Progress, Row, Space } from "antd"
+import { Button, Card, Col, List, Progress, Row, Space, Table, Typography } from "antd"
 import { ArrowRightOutlined } from "@ant-design/icons"
 import { SessionProvider } from "next-auth/react"
+import { title } from "process";
 
 
 export default function SaleDashboardPage() {
@@ -44,8 +45,28 @@ export default function SaleDashboardPage() {
                     <Card className="step-card progress-card">
                         <Space direction="vertical">
                             <h2>Transactions</h2>
-           
-            
+                            <List 
+                                dataSource={[
+                                    {
+                                        title: 'iPhone 13 Pro Max',
+                                        price: 3500
+                                    },
+                                    {
+                                        title: 'iPhone 13 Pro',
+                                        price: 3000
+                                    },
+                                    {
+                                        title: 'iPhone 13',
+                                        price: 2500
+                                    },
+                                ]}
+                                renderItem={(item) => (
+                                    <List.Item>
+                                      <Typography.Text mark>[{item.title}]</Typography.Text> {item.price}
+                                    </List.Item>
+                                  )}
+                            
+                            />
                         </Space>
                     </Card>
                 </Col>

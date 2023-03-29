@@ -1,11 +1,13 @@
 "use client"
-import { Avatar, Card, Col, Collapse, Form, Image, Input, InputNumber, Modal, Row, Typography, theme } from "antd"
+import { Avatar, Card, Col, Collapse, Form, Image, Input, InputNumber, Modal, Row, Select, Typography, message, theme } from "antd"
 import { EditOutlined, DeleteOutlined, PlusOutlined, PhoneOutlined, TabletOutlined, ClockCircleOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import Meta from "antd/es/card/Meta";
 import { Device, DeviceCategory } from "./devices";
 import TextArea from "antd/es/input/TextArea";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AccessControl } from "@/app/common/accessControl";
+import { PromoInterface } from "../promos/promos";
+import axios from "axios";
 
 const { confirm } = Modal;
 const { Panel } = Collapse;
@@ -16,9 +18,11 @@ interface DeviceCardProps {
     device: Device,
     deleteDevice?: (id: string) => void,
     editDevice?: (id: string) => void
+    getDevices?: () => void,
+    promos?: PromoInterface[]
 }
 
-export default function DeviceCard({ device }: DeviceCardProps) {
+export default function DeviceCard({ device, promos, getDevices }: DeviceCardProps) {
     const [isEditDeviceModalVisible, setEditDeviceModalVisible] = useState<boolean>(false);
     const [isPromoModalVisible, setPromoModalVisible] = useState<boolean>(false);
 
@@ -59,13 +63,13 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                     />
                 }
                 actions={[
-                    <AccessControl key="1" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:edit-devices"]}>
-                        <EditOutlined key="edit" onClick={() => setEditDeviceModalVisible(true)} />,
+                    // <AccessControl key="1" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:edit-devices"]}>
+                    //     <EditOutlined key="edit" onClick={() => setEditDeviceModalVisible(true)} />
+                    // </AccessControl>,
+                    <AccessControl key="2" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:delete-device"]}>
+                        <DeleteOutlined key="delete" onClick={() => deleteDevice()} />
                     </AccessControl>,
-                    <AccessControl key="2" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:delete-devices"]}>
-                        <DeleteOutlined key="delete" onClick={() => deleteDevice()} />,
-                    </AccessControl>,
-                    <AccessControl key="3">
+                    <AccessControl key="3" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:update-device-promo"]}>
                         <PlusOutlined key="addPromo" onClick={() => setPromoModalVisible(true)} />
                     </AccessControl>,
                 
@@ -74,9 +78,9 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                 <Meta
                     avatar={<Avatar icon={resolveAvatarIcon()} />}
                     title={device.name}
-                    description={device.promoCode
+                    description={device.promos
                         ? <>
-                            <Text delete> $ {device.price}</Text> <Text strong>$ {device.price! - device.promoCode.discount}</Text>
+                            <Text type="secondary" delete> $ {device.price}</Text> <Text strong>$ {device.price! - device.promos.discount}</Text>
                         </> :
                         <>
                             $ {device.price}
@@ -93,7 +97,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                 </Collapse>
             </Card>
             <EditDeviceModal device={device} isOpen={isEditDeviceModalVisible} setIsOpen={setEditDeviceModalVisible} />
-            <AddPromoModal device={device} isOpen={isPromoModalVisible} setIsOpen={setPromoModalVisible} />
+            <AddPromoModal getDevices={getDevices} promos={promos} device={device} isOpen={isPromoModalVisible} setIsOpen={setPromoModalVisible} />
         </>
     )
 }
@@ -102,55 +106,64 @@ export interface AddDeviceModalProps {
     isOpen: boolean;
     setIsOpen: (isOpen: boolean) => void;
     device: Device;
+    promos?: any[];
+    getDevices?: () => void;
 }
 
-const AddPromoModal = ({ isOpen, setIsOpen, device }: AddDeviceModalProps) => {
+const AddPromoModal = ({ isOpen, setIsOpen, device, promos, getDevices }: AddDeviceModalProps) => {
     const [form] = Form.useForm();
+    const [loading, setLoading] = useState(false);
 
-    const editDevice = (values: any) => {
-        console.log(values);
+    useEffect(() => {
+        // change the attribute value of the promos array
+        // to be the value of the select option        
+        promos && promos.map((promo) => {
+            promo.value = promo.id;
+            promo.label = `${promo.promoCode} - ($${promo.discount})`;
+        })
+    }, [promos])
 
+    const addPromoCode = async (values: any) => {
+        setLoading(true);
+        try {
+            await axios.patch("/api/device", {
+                deviceId: device.id,
+                promoCodeId: values.promoCode,
+                existingPromoCodeId: device.promos?.id
+            })
+            setIsOpen(false);
+            getDevices && getDevices();
+        } catch (error) {
+            console.log(error);
+            message.error("Error adding promo code to device");     
+        } finally {
+            setLoading(false);
+        }
     }
-
+    
     return (
         <Modal
-            title="Edit Device"
+            title="Add Promo"
             open={isOpen}
-            okText="Edit"
+            okText="Add"
             onOk={() => form.submit()}
             onCancel={() => setIsOpen(false)}
             closable={false}
+            confirmLoading={loading}
         >
             <Form
                 form={form}
                 layout="vertical"
-                onFinish={editDevice}
-                initialValues={
-                    {
-                        description: device.description,
-                        price: device.price,
-                    }
-                }
+                onFinish={addPromoCode}
             >
                 <Row gutter={16}>
                     <Col span={24}>
                         <Form.Item
-                            label="Price"
-                            name="price"
+                            label="Add Promo Code for Device"
+                            name="promoCode"
                             rules={[{ required: true, message: 'Required!' }]}
                         >
-                            <InputNumber style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                </Row>
-                <Row gutter={16}>
-                    <Col span={24}>
-                        <Form.Item
-                            label="Description"
-                            name="description"
-                            rules={[{ required: true, message: 'Required!' }]}
-                        >
-                            <TextArea />
+                            <Select options={promos}  />
                         </Form.Item>
                     </Col>
                 </Row>

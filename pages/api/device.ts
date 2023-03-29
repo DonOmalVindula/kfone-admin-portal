@@ -31,6 +31,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const response = await axios.delete(`${apiUrl}/devices/`, requestConfig);
 
             res.status(200).json(response.data);
+        } else if (req.method === 'PATCH') {            
+            const deviceId = req.body.deviceId;
+            const promoId = req.body.promoCodeId;
+            const existingPromoId = req.body.existingPromoId;
+            let obj = {};
+            if (existingPromoId) {
+                // we have to remove the exisitng promo code
+                obj = {
+                    addedPromoId : promoId,
+                    removedPromoId : existingPromoId
+                }
+            } else {
+                obj = {
+                    addedPromoId : promoId,
+                    removedPromoId : ""
+                }
+            }            
+            const response = await axios.patch(`${apiUrl}/devices/${deviceId}/promos`, obj, requestConfig);
+
+            res.status(200).json(response.data);
         }
     } catch (error) {
         res.status(500).json({ statusCode: 500, message: error })

@@ -28,7 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             res.status(200).json(response.data);
         } else if (req.method === 'DELETE') {
-            const response = await axios.delete(`${apiUrl}/devices/`, requestConfig);
+            const deviceId = req.body.deviceId;
+            const response = await axios.delete(`${apiUrl}/devices/${deviceId}`, requestConfig);
 
             res.status(200).json(response.data);
         } else if (req.method === 'PATCH') {            

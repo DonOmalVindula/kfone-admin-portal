@@ -26,12 +26,15 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
             
             if (userGroup.includes("Admin")) {
                 setUserRole(Role.ADMIN);
+                push("authenticated/devices")
             }
             if (userGroup.includes("Sales")) {
                 setUserRole(Role.SALES);
+                push("authenticated/devices")
             }
             if (userGroup.includes("Marketing")) {
                 setUserRole(Role.MARKETING);
+                push("authenticated/sales")
             }
         }
         

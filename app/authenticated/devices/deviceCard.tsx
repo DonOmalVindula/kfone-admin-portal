@@ -42,8 +42,18 @@ export default function DeviceCard({ device, promos, getDevices }: DeviceCardPro
             title: 'Do you want to delete this item?',
             icon: <ExclamationCircleFilled />,
             content: "Device Name: " + device.name,
-            onOk() {
-                console.log('OK');
+            async onOk() {
+                try {
+                    await axios.delete(`/api/device`, {
+                        data: {
+                            deviceId: device.id
+                        }
+                    });
+                    getDevices && getDevices();
+                } catch (error) {
+                    console.log(error);
+                    message.error("Error deleting device");
+                }
             }
         });
     }

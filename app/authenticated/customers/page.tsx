@@ -1,39 +1,53 @@
 "use client"
-import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space, Table } from "antd"
+import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space, Table, message } from "antd"
 import { PlusOutlined, ExclamationCircleFilled } from "@ant-design/icons"
 import { Customer, CustomerTier } from "./customers";
 import { useEffect, useState } from "react";
 import TextArea from "antd/es/input/TextArea";
+import axios from "axios";
+import { AccessControl } from "@/app/common/accessControl";
 
 const { Option } = Select;
 const { Search } = Input;
 const { confirm } = Modal;
 
 export default function CustomersPage() {
-    const [customers, setCustomers] = useState<Customer[]>([{
-        name: "John Doe",
-        email: "john@wso2.com",
-        password: "",
-        tier: CustomerTier.NONE,
-        points: 0
-    }]);
+    const [customers, setCustomers] = useState<any[]>([]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer>();
-    const [searchHits, setSearchHits] = useState<Customer[]>([]);
+    const [searchHits, setSearchHits] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isAddCustomerModalVisible, setAddCustomerModalVisible] = useState<boolean>(false);
     const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
     useEffect(() => {
-        // get customers
+        getCustomers();
     }, []);
 
     useEffect(() => {
         onSearch();
     }, [searchQuery]);
 
+    const getCustomers = async () => {
+        setIsLoading(true);
+        try {
+            const response = await axios.get("/api/customer");
+            const customers = response.data.Resources;    
+            console.log(customers);
+                    
+            
+            setCustomers(customers);
+            setSearchHits(customers);
+            setIsLoading(false);
+        } catch (error) {
+            console.log(error);
+            message.error("Error fetching customers");
+            setIsLoading(false);
+        }
+    }
+
     const onSearch = () => {
-        const hits = customers.filter((customer) => customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
+        const hits = customers.filter((customer) => customer.emails[0].toLowerCase().includes(searchQuery.toLowerCase()));
         setSearchHits(hits);
     };
 
@@ -50,32 +64,35 @@ export default function CustomersPage() {
 
     const columns = [
         {
-            title: 'Name',
-            dataIndex: 'name',
-            key: 'name',
-        },
-        {
             title: 'Email',
             dataIndex: 'email',
             key: 'email',
+            render : (text: string, record: any) => <span>{record.emails[0]}</span>
+        },
+        {
+            title: 'Name',
+            dataIndex: 'name',
+            key: 'name',
+            render : (text: string, record: any) => <span>{`${record.name.givenName ?? ""} ${record.name.familyName ?? ""}`}</span>
         },
         {
             title: 'Tier',
             dataIndex: 'tier',
             key: 'tier',
-            render: (text: string) => <span>{text.toUpperCase()}</span>
+            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"].tier.toUpperCase()}</span>
         },
         {
             title: 'Points',
-            dataIndex: 'points',
-            key: 'points',
+            dataIndex: 'tierPoints',
+            key: 'tierPoints',
+            render: (text: string, record: any) => <span>{record["urn:scim:wso2:schema"].tierPoints}</span>
         },
         {
             title: 'Actions',
             key: 'actions',
             render: (text: string, record: Customer) => (
                 <Space size="middle">
-                    <a 
+                    <a
                         onClick={() => {
                             setIsEditMode(true);
                             setSelectedCustomer(record);
@@ -103,7 +120,7 @@ export default function CustomersPage() {
                 </Col>
             </Row>
             <Row className="search-row" gutter={[16, 16]}>
-                <Col span={6} offset={2}>
+                <Col span={8} offset={2}>
                     <Search
                         placeholder="Search Customers"
                         allowClear
@@ -112,25 +129,35 @@ export default function CustomersPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Col>
-                <Col span={4}>
-                    <Button
-                        type="primary"
-                        onClick={() => {
-                            setIsEditMode(false);
-                            setAddCustomerModalVisible(true)
-                        }} 
-                        size='large' 
-                        icon={<PlusOutlined />} 
-                        block
-                    > Add Customer</Button>
-                </Col>
+                <AccessControl
+                    allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:create-user"]}
+                >
+                    <Col lg={4} md={6}>
+                        <Button
+                            type="primary"
+                            onClick={() => {
+                                setIsEditMode(false);
+                                setAddCustomerModalVisible(true)
+                            }}
+                            size='large'
+                            icon={<PlusOutlined />}
+                            block
+                        > Add Customer</Button>
+                    </Col>
+                </AccessControl>
             </Row>
             <Row gutter={[16, 16]} >
                 <Col span={20} offset={2}>
                     <Table loading={isLoading} columns={columns} dataSource={searchHits} bordered />
                 </Col>
             </Row>
-            <AddCustomerModal isOpen={isAddCustomerModalVisible} setIsOpen={setAddCustomerModalVisible} isEditMode={isEditMode} selectedCustomer={selectedCustomer} />
+            <AddCustomerModal
+                getCustomers={getCustomers}
+                isOpen={isAddCustomerModalVisible}
+                setIsOpen={setAddCustomerModalVisible}
+                isEditMode={isEditMode}
+                selectedCustomer={selectedCustomer}
+            />
         </>
     )
 }
@@ -140,35 +167,61 @@ export interface AddCustomerModalProps {
     setIsOpen: (isOpen: boolean) => void;
     isEditMode?: boolean;
     selectedCustomer?: Customer;
+    getCustomers: () => void;
 }
 
-const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalProps) => {
+const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode, getCustomers }: AddCustomerModalProps) => {
     const [form] = Form.useForm();
 
-    const resolveAction = (values: any) => {
-        if (isEditMode) {
-            console.log(values);
-        } else {
-            console.log(values);
+    const resolveAction = async (values: any) => {
+        try {
+            if (isEditMode) {
+                console.log('edit customer');
+                const processedValues = {
+                    ...values,
+                    tierPoints: values.tierPoints.toString()
+                }
+                await axios.put("/api/customer", processedValues);
+
+                setIsOpen(false);
+                getCustomers();
+            } else {
+                console.log('add customer');
+                const processedValues = {
+                    ...values,
+                    tierPoints: values.tierPoints.toString()
+                }
+                await axios.post("/api/customer", processedValues);
+
+                setIsOpen(false);
+                getCustomers();
+            }
+        } catch (error) {
+            console.log(error);
+            setIsOpen(false);
         }
-        // setSubmitting(true);
-        // const tempDevices = [...devices];
-
-        // const newDevice: Device = {
-        //     id: (tempDevices.length + 1).toString(),
-        //     name: values.deviceName,
-        //     description: values.description,
-        //     category: values.category,
-        //     price: values.price,
-        //     imageUrl: values.imageUrl,
-        //     promoCodes: resolvePromoCodeArray(values)
-        // }
-
-        // tempDevices.push(newDevice);
-        // setDevices(tempDevices);
-        // setSubmitting(false);
-        // setIsOpen(false);
     }
+
+    const changeCustomerPoints = (value: string) => {
+        if (value === CustomerTier.NONE) {
+            form.setFieldValue("tierPoints", 0);
+        }
+
+        if (value === CustomerTier.SILVER) {
+            form.setFieldValue("tierPoints", 150);
+        }
+
+        if (value === CustomerTier.GOLD) {
+            form.setFieldValue("tierPoints", 300);
+        }
+
+        if (value === CustomerTier.PLATINUM) {
+            form.setFieldValue("tierPoints", 500);
+        }
+
+        form.validateFields(["tierPoints"]);
+    }
+
 
     return (
         <Modal
@@ -185,7 +238,7 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalPro
                 onFinish={resolveAction}
                 initialValues={
                     {
-                        points: 0
+                        tierPoints: 0
                     }
                 }
             >
@@ -194,8 +247,8 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalPro
                         <Row gutter={16}>
                             <Col span={12}>
                                 <Form.Item
-                                    label="Name"
-                                    name="name"
+                                    label="First Name"
+                                    name="givenName"
                                     rules={[{ required: true, message: 'Required!' }]}
                                 >
                                     <Input />
@@ -203,8 +256,17 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalPro
                             </Col>
                             <Col span={12}>
                                 <Form.Item
+                                    label="Last Name"
+                                    name="familyName"
+                                    rules={[{ required: true, message: 'Required!' }]}
+                                >
+                                    <Input />
+                                </Form.Item>
+                            </Col>
+                            <Col span={24}>
+                                <Form.Item
                                     label="Email"
-                                    name="email"
+                                    name="username"
                                     rules={[
                                         { required: true, message: 'Required!' },
                                         { type: 'email', message: 'Please enter a valid email address' }
@@ -232,8 +294,35 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalPro
                     <Col span={12}>
                         <Form.Item
                             label="Loyalty Points"
-                            name="points"
-                            rules={[{ required: true, message: 'Required!' }]}
+                            name="tierPoints"
+                            rules={[
+                                { required: true, message: 'Required!' },
+                                {
+                                    message: 'Points should not be negative',
+                                    validator: (_, value) => {
+                                        if (value < 0) {
+                                            return Promise.reject('Points should not be negative');
+                                        } else {
+                                            return Promise.resolve();
+                                        }
+                                    }
+                                },
+                                {
+                                    validator: (_, value) => {
+                                        if ((form.getFieldValue("tier") === CustomerTier.NONE) && value >= 150) {
+                                            return Promise.reject('Points should be less than 150');
+                                        } else if ((form.getFieldValue("tier") === CustomerTier.SILVER) && (value >= 300 || value < 150)) {
+                                            return Promise.reject('Points should be 150 - 300');
+                                        } else if ((form.getFieldValue("tier") === CustomerTier.GOLD) && (value >= 500 || value < 300)) {
+                                            return Promise.reject('Points should be 300 - 500');
+                                        } else if ((form.getFieldValue("tier") === CustomerTier.PLATINUM) && value < 500) {
+                                            return Promise.reject('Points should be greater than 500');
+                                        } else {
+                                            return Promise.resolve();
+                                        }
+                                    }
+                                }
+                            ]}
                         >
                             <InputNumber style={{ width: "100%" }} />
                         </Form.Item>
@@ -244,7 +333,9 @@ const AddCustomerModal = ({ isOpen, setIsOpen, isEditMode }: AddCustomerModalPro
                             name="tier"
                             rules={[{ required: true, message: 'Required!' }]}
                         >
-                            <Select>
+                            <Select
+                                onChange={(value) => changeCustomerPoints(value)}
+                            >
                                 <Option value={CustomerTier.NONE}>None</Option>
                                 <Option value={CustomerTier.SILVER}>Silver</Option>
                                 <Option value={CustomerTier.GOLD}>Gold</Option>

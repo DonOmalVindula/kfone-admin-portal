@@ -1,5 +1,5 @@
 "use client"
-import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space } from "antd"
+import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space, message } from "antd"
 import { PlusOutlined } from "@ant-design/icons"
 import DeviceCard from "./deviceCard"
 import { Device, DeviceCategory } from "./devices";
@@ -7,12 +7,15 @@ import { useEffect, useState } from "react";
 import TextArea from "antd/es/input/TextArea";
 import axios, { AxiosRequestConfig } from "axios";
 import { useSession } from "next-auth/react";
+import { AccessControl } from "@/app/common/accessControl";
+import { PromoInterface } from "../promos/promos";
 
 const { Option } = Select;
 const { Search } = Input;
 
 export default function DevicePage() {
     const [devices, setDevices] = useState<Device[]>([]);
+    const [promos, setPromos] = useState<PromoInterface[]>([]);
     const [searchHits, setSearchHits] = useState<Device[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [searchFilter, setSearchFilter] = useState(DeviceCategory.PHONE);
@@ -22,6 +25,7 @@ export default function DevicePage() {
 
     useEffect(() => {
         getDevices();
+        getPromos();
     }, []);
 
 
@@ -40,16 +44,10 @@ export default function DevicePage() {
     };
 
     const getDevices = async () => {
-        const token = data?.access_token;
-
-        const requestConfig: AxiosRequestConfig = {
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        }
-        
-        try{
-            const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/devices`, requestConfig);
+        try {
+            const response = await axios.get("/api/device");
+            console.log(response.data);
+            
             setDevices(response.data);
             setSearchHits(response.data);
         } catch (error) {
@@ -57,8 +55,18 @@ export default function DevicePage() {
         }
     }
 
+    const getPromos = async () => {
+        try {
+            const response = await axios.get("/api/promos");
+            setPromos(response.data);            
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     return (
         <>
+
             <Row className="title-row">
                 <Col span={20} offset={2}>
                     <h1>Manage Devices</h1>
@@ -81,9 +89,13 @@ export default function DevicePage() {
                         <Option value={DeviceCategory.WEARABLE}>Wearables</Option>
                     </Select>
                 </Col>
-                <Col lg={4} md={6}>
-                    <Button type="primary" onClick={() => setAddDeviceModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Device</Button>
-                </Col>
+                <AccessControl
+                    allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:create-device"]}
+                >
+                    <Col lg={4} md={6}>
+                        <Button type="primary" onClick={() => setAddDeviceModalVisible(true)} size='large' icon={<PlusOutlined />} block> Add Device</Button>
+                    </Col>
+                </AccessControl>
             </Row>
             <Row gutter={[16, 16]} >
                 <Col span={20} offset={2}>
@@ -104,7 +116,13 @@ export default function DevicePage() {
                     />
                 </Col>
             </Row>
-            <AddDeviceModal devices={devices} setDevices={setDevices} isOpen={isAddDeviceModalVisible} setIsOpen={setAddDeviceModalVisible} />
+            <AddDeviceModal
+                devices={devices}
+                setDevices={setDevices} 
+                isOpen={isAddDeviceModalVisible}
+                setIsOpen={setAddDeviceModalVisible}
+                getDevices={getDevices}
+            />
         </>
     )
 }
@@ -114,9 +132,10 @@ export interface AddDeviceModalProps {
     setIsOpen: (isOpen: boolean) => void;
     setDevices: (devices: Device[]) => void;
     devices: Device[];
+    getDevices: () => void;
 }
 
-const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceModalProps) => {
+const AddDeviceModal = ({ isOpen, setIsOpen, getDevices }: AddDeviceModalProps) => {
     const [form] = Form.useForm();
     const [isSubmitting, setSubmitting] = useState(false);
     const [promoCodeCount, setPromoCodeCount] = useState<number>(0);
@@ -152,23 +171,18 @@ const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceMod
         return promoCodeArray;
     }
 
-    const addDevice = (values: any) => {
+    const addDevice = async (values: any) => {
         setSubmitting(true);
-        const tempDevices = [...devices];
-
-        const newDevice: Device = {
-            id: (tempDevices.length + 1).toString(),
-            name: values.deviceName,
-            description: values.description,
-            category: values.category,
-            price: values.price,
-            imageUrl: values.imageUrl,
+        try {
+            await axios.post("/api/device", values);
+            setIsOpen(false);
+            getDevices();
+        } catch (error) {
+            console.log(error);
+            message.error("Error adding device");            
+        } finally {
+            setSubmitting(false);
         }
-
-        tempDevices.push(newDevice);
-        setDevices(tempDevices);
-        setSubmitting(false);
-        setIsOpen(false);
     }
 
     return (
@@ -190,7 +204,7 @@ const AddDeviceModal = ({ isOpen, setIsOpen, devices, setDevices }: AddDeviceMod
                     <Col span={12}>
                         <Form.Item
                             label="Device Name"
-                            name="deviceName"
+                            name="name"
                             rules={[{ required: true, message: 'Required!' }]}
                         >
                             <Input />

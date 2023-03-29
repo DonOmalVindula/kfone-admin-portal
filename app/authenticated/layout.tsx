@@ -30,7 +30,7 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
     let items: MenuProps['items'] = [];
 
-    if (userRole === Role.ADMIN || userRole === Role.SALES) {
+    if (userRole === Role.ADMIN) {
         items = [
             {
                 label: 'Devices',
@@ -46,6 +46,26 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                 label: 'Staff',
                 key: 'authenticated/staff',
                 icon: <SettingOutlined />,
+            },
+            {
+                label: 'Promos',
+                key: 'authenticated/promos',
+                icon: <SettingOutlined />,
+            },
+        ];
+    }
+
+    if (userRole === Role.SALES) {
+        items = [
+            {
+                label: 'Devices',
+                key: 'authenticated/devices',
+                icon: <MailOutlined />,
+            },
+            {
+                label: 'Customers',
+                key: 'authenticated/customers',
+                icon: <AppstoreOutlined />,
             },
             {
                 label: 'Promos',

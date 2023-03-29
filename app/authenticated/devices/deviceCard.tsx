@@ -5,6 +5,7 @@ import Meta from "antd/es/card/Meta";
 import { Device, DeviceCategory } from "./devices";
 import TextArea from "antd/es/input/TextArea";
 import { useState } from "react";
+import { AccessControl } from "@/app/common/accessControl";
 
 const { confirm } = Modal;
 const { Panel } = Collapse;
@@ -19,6 +20,7 @@ interface DeviceCardProps {
 
 export default function DeviceCard({ device }: DeviceCardProps) {
     const [isEditDeviceModalVisible, setEditDeviceModalVisible] = useState<boolean>(false);
+    const [isPromoModalVisible, setPromoModalVisible] = useState<boolean>(false);
 
     const resolveAvatarIcon = () => {
         switch (device.category) {
@@ -57,15 +59,22 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                     />
                 }
                 actions={[
-                    <EditOutlined key="edit" onClick={() => setEditDeviceModalVisible(true)} />,
-                    <DeleteOutlined key="delete" onClick={() => deleteDevice()} />,
-                    <PlusOutlined key="addPromo" />,
+                    <AccessControl key="1" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:edit-devices"]}>
+                        <EditOutlined key="edit" onClick={() => setEditDeviceModalVisible(true)} />,
+                    </AccessControl>,
+                    <AccessControl key="2" allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:delete-devices"]}>
+                        <DeleteOutlined key="delete" onClick={() => deleteDevice()} />,
+                    </AccessControl>,
+                    <AccessControl key="3">
+                        <PlusOutlined key="addPromo" onClick={() => setPromoModalVisible(true)} />
+                    </AccessControl>,
+                
                 ]}
-                >
+            >
                 <Meta
                     avatar={<Avatar icon={resolveAvatarIcon()} />}
                     title={device.name}
-                    description={ device.promoCode 
+                    description={device.promoCode
                         ? <>
                             <Text delete> $ {device.price}</Text> <Text strong>$ {device.price! - device.promoCode.discount}</Text>
                         </> :
@@ -73,7 +82,7 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                             $ {device.price}
                         </>
                     }
-                    />
+                />
                 <Collapse
                     style={{ backgroundColor: "#f1f1f1", marginTop: "1rem" }}
                     ghost
@@ -84,7 +93,69 @@ export default function DeviceCard({ device }: DeviceCardProps) {
                 </Collapse>
             </Card>
             <EditDeviceModal device={device} isOpen={isEditDeviceModalVisible} setIsOpen={setEditDeviceModalVisible} />
+            <AddPromoModal device={device} isOpen={isPromoModalVisible} setIsOpen={setPromoModalVisible} />
         </>
+    )
+}
+
+export interface AddDeviceModalProps {
+    isOpen: boolean;
+    setIsOpen: (isOpen: boolean) => void;
+    device: Device;
+}
+
+const AddPromoModal = ({ isOpen, setIsOpen, device }: AddDeviceModalProps) => {
+    const [form] = Form.useForm();
+
+    const editDevice = (values: any) => {
+        console.log(values);
+
+    }
+
+    return (
+        <Modal
+            title="Edit Device"
+            open={isOpen}
+            okText="Edit"
+            onOk={() => form.submit()}
+            onCancel={() => setIsOpen(false)}
+            closable={false}
+        >
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={editDevice}
+                initialValues={
+                    {
+                        description: device.description,
+                        price: device.price,
+                    }
+                }
+            >
+                <Row gutter={16}>
+                    <Col span={24}>
+                        <Form.Item
+                            label="Price"
+                            name="price"
+                            rules={[{ required: true, message: 'Required!' }]}
+                        >
+                            <InputNumber style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+                <Row gutter={16}>
+                    <Col span={24}>
+                        <Form.Item
+                            label="Description"
+                            name="description"
+                            rules={[{ required: true, message: 'Required!' }]}
+                        >
+                            <TextArea />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Form>
+        </Modal>
     )
 }
 

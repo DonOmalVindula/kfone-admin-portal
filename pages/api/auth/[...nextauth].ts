@@ -26,7 +26,16 @@ export const authOptions: NextAuthOptions = {
             wellKnown: "https://api.asgardeo.io/t/" + process.env.NEXT_PUBLIC_ASGARDEO_ORGANIZATION_NAME + "/oauth2/token/.well-known/openid-configuration",
             authorization: {
                 params:
-                    { scope: "openid profile urn:kfonenextjsdemo:kfoneadminapis:add-devices urn:kfonenextjsdemo:kfoneadminapis:view-devices" }
+                    { scope: "openid " + "profile " + 
+                        "urn:kfonenextjsdemo:kfoneadminapis:create-promo " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:view-promos " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:update-device-promo " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:delete-promo " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:create-user " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:view-users " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:create-device " +
+                        "urn:kfonenextjsdemo:kfoneadminapis:view-devices"
+                    }
             },
             idToken: true,
             checks: ["pkce", "state"],

@@ -83,16 +83,16 @@ export default function CustomersPage() {
                 </Col>
             </Row>
             <Row className="search-row" gutter={[16, 16]}>
-                <Col span={6} offset={2}>
+                <Col span={8} offset={2}>
                     <Search
-                        placeholder="Search Staffs"
+                        placeholder="Search Staff"
                         allowClear
                         size="large"
                         onSearch={onSearch}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Col>
-                <Col span={4}>
+                <Col lg={4} md={6}>
                     <Button
                         type="primary"
                         onClick={() => {

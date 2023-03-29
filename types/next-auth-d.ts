@@ -10,7 +10,7 @@ declare module "next-auth" {
       accessToken?: string;
       /** Oauth id token */
       idToken?: string;
-      scope?: string[];
+      scope?: string;
       id?: string;
     } & DefaultSession["user"];
   }

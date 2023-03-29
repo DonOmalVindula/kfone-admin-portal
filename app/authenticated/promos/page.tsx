@@ -22,7 +22,7 @@ export default function PromosPage() {
     const getPromos = async () => {
         setIsLoading(true);
         try {
-            const response = await axios.get(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/promos");
+            const response = await axios.get("/api/promos");
             setPromos(response.data);
             setIsLoading(false);
         } catch (error) {
@@ -41,7 +41,7 @@ export default function PromosPage() {
             okType: 'danger',
             cancelText: 'No',
             async onOk() {
-                await axios.delete(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/promos", { data: { id } });
+                await axios.delete("/api/promos", { data: { id } });
                 getPromos();
             }
         });
@@ -112,7 +112,7 @@ const AddPromoModal = ({ isOpen, setIsOpen, getPromos }: AddPromoModalProps) => 
 
     const addPromoCode = async (values: any) => {
         try {
-            await axios.post(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/promos", values);
+            await axios.post("/api/promos", values);
             getPromos();
             setIsOpen(false);
         } catch (error) {

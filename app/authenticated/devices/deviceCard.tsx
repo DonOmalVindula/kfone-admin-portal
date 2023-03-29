@@ -136,7 +136,7 @@ const AddPromoModal = ({ isOpen, setIsOpen, device, promos, getDevices }: AddDev
     const addPromoCode = async (values: any) => {
         setLoading(true);
         try {
-            await axios.patch(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/device", {
+            await axios.patch("/api/device", {
                 deviceId: device.id,
                 promoCodeId: values.promoCode,
                 existingPromoCodeId: device.promos?.id

@@ -47,7 +47,7 @@ export default function DevicePage() {
     const getDevices = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/device");
+            const response = await axios.get("/api/device");
             console.log(response.data);
             
             setDevices(response.data);
@@ -61,7 +61,7 @@ export default function DevicePage() {
 
     const getPromos = async () => {
         try {
-            const response = await axios.get(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/promos");
+            const response = await axios.get("/api/promos");
             setPromos(response.data);            
         } catch (error) {
             console.log(error);
@@ -179,7 +179,7 @@ const AddDeviceModal = ({ isOpen, setIsOpen, getDevices }: AddDeviceModalProps) 
     const addDevice = async (values: any) => {
         setSubmitting(true);
         try {
-            await axios.post(process.env.NEXT_PUBLIC_DEPLOY_URL  + "/api/device", values);
+            await axios.post("/api/device", values);
             setIsOpen(false);
             getDevices();
         } catch (error) {

@@ -28,6 +28,8 @@ export default function Component() {
                 if (userGroup.includes("Marketing")) {
                     push("authenticated/sales")
                 }
+            } else {
+                push("authenticated/devices")
             }
         }
     }, [status])

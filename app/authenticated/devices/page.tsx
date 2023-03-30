@@ -1,12 +1,11 @@
 "use client"
-import { Button, Col, Divider, Form, Input, InputNumber, List, Modal, Row, Select, Space, message } from "antd"
+import { Button, Col, Form, Input, InputNumber, List, Modal, Row, Select, message } from "antd"
 import { PlusOutlined } from "@ant-design/icons"
 import DeviceCard from "./deviceCard"
 import { Device, DeviceCategory } from "./devices";
 import { useEffect, useState } from "react";
 import TextArea from "antd/es/input/TextArea";
-import axios, { AxiosRequestConfig } from "axios";
-import { useSession } from "next-auth/react";
+import axios from "axios";
 import { AccessControl } from "@/app/common/accessControl";
 import { PromoInterface } from "../promos/promos";
 
@@ -19,10 +18,7 @@ export default function DevicePage() {
     const [promos, setPromos] = useState<PromoInterface[]>([]);
     const [searchHits, setSearchHits] = useState<Device[]>([]);
     const [searchQuery, setSearchQuery] = useState<string>("");
-    const [searchFilter, setSearchFilter] = useState(DeviceCategory.PHONE);
     const [isAddDeviceModalVisible, setAddDeviceModalVisible] = useState<boolean>(false);
-    const { data }: any = useSession();
-
 
     useEffect(() => {
         getDevices();
@@ -40,16 +36,10 @@ export default function DevicePage() {
         setSearchHits(hits);
     };
 
-    const handleFilterChange = (value: string) => {
-        setSearchFilter(value as DeviceCategory);
-    };
-
     const getDevices = async () => {
         setLoading(true);
         try {
-            const response = await axios.get("/api/device");
-            console.log(response.data);
-            
+            const response = await axios.get("/api/device");            
             setDevices(response.data);
             setSearchHits(response.data);
         } catch (error) {
@@ -85,13 +75,6 @@ export default function DevicePage() {
                         onSearch={onSearch}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                </Col>
-                <Col lg={4} md={6}>
-                    <Select size="large" defaultValue={DeviceCategory.PHONE} style={{ width: "100%" }} onChange={handleFilterChange}>
-                        <Option value={DeviceCategory.PHONE} >Phones</Option>
-                        <Option value={DeviceCategory.TABLET}>Tablets</Option>
-                        <Option value={DeviceCategory.WEARABLE}>Wearables</Option>
-                    </Select>
                 </Col>
                 <AccessControl
                     allowedScopes={["urn:kfonenextjsdemo:kfoneadminapis:create-device"]}

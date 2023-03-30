@@ -4,11 +4,7 @@ import { AppstoreOutlined, MailOutlined, SettingOutlined, PhoneOutlined, UserOut
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import LoadingSpinner from "../common/loadingSpinner";
-import axios, { AxiosError, AxiosRequestConfig } from "axios";
-import { getServerSession } from "next-auth";
-import { decode, getToken } from "next-auth/jwt";
 import { Role } from "./roles";
 
 
@@ -18,12 +14,9 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
     const [userRole, setUserRole] = useState<Role>(Role.ADMIN);
     const [current, setCurrent] = useState('authenticated/devices');
 
-    useEffect(() => {        
+    useEffect(() => {
         const userGroup = data?.user?.groups;
-
-        console.log("User group: ", userGroup);
         if (userGroup) {
-            
             if (userGroup.includes("Admin")) {
                 setUserRole(Role.ADMIN);
                 push("authenticated/devices")
@@ -37,13 +30,6 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                 push("authenticated/sales")
             }
         }
-        
-    }, []);
-
-    useEffect(() => {
-        setCurrent(window.location.pathname);
-        console.log("Current: ", window.location.pathname);
-        
     }, []);
 
     let items: MenuProps['items'] = [];
@@ -60,11 +46,6 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                 key: 'authenticated/customers',
                 icon: <UserOutlined />,
             },
-            // {
-            //     label: 'Staff',
-            //     key: 'authenticated/staff',
-            //     icon: <SettingOutlined />,
-            // },
             {
                 label: 'Promos',
                 key: 'authenticated/promos',
@@ -105,21 +86,6 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
                 key: 'authenticated/sales',
                 icon: <MailOutlined />,
             }
-            // {
-            //     label: 'Customers',
-            //     key: 'authenticated/customers',
-            //     icon: <AppstoreOutlined />,
-            // },
-            // {
-            //     label: 'Promos',
-            //     key: 'authenticated/promos',
-            //     icon: <SettingOutlined />,
-            // },
-            // {
-            //     label: 'Staff',
-            //     key: 'authenticated/staff',
-            //     icon: <SettingOutlined />,
-            // },
         ];
     }
 
@@ -130,8 +96,21 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
     };
 
     const testSignOut = async () => {
-        push("api/auth/federated-sign-out");
-        // signOut();
+        const idToken = data?.user?.idToken;
+        
+        if (idToken) {
+            signOut()
+                .then(
+                    () => window.location.assign(
+                        process.env.NEXT_PUBLIC_ASGARDEO_SERVER_ORIGIN +
+                        "/oidc/logout?id_token_hint=" + idToken + "&post_logout_redirect_uri=" +
+                        process.env.NEXT_PUBLIC_ASGARDEO_POST_LOGOUT_REDIRECT_URI + "&state=sign_out_success"
+                    )
+                );
+        } else {
+            await signOut({ callbackUrl: "/" });
+        }
+
     }
 
     return (
